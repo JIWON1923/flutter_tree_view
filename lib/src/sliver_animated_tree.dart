@@ -134,8 +134,7 @@ class SliverAnimatedTree<T extends Object> extends SliverTree<T> {
   State<SliverAnimatedTree<T>> createState() => _SliverAnimatedTreeState<T>();
 }
 
-class _SliverAnimatedTreeState<T extends Object>
-    extends State<SliverAnimatedTree<T>> {
+class _SliverAnimatedTreeState<T extends Object> extends State<SliverAnimatedTree<T>> {
   Map<T, bool> get _expansionStates => _expansionStatesCache ??= <T, bool>{};
   Map<T, bool>? _expansionStatesCache;
 
@@ -149,7 +148,7 @@ class _SliverAnimatedTreeState<T extends Object>
 
     final Visitor<TreeEntry<T>> onTraverse;
 
-    if (widget.duration == Duration.zero) {
+    if (widget.duration == Duration.zero || !widget.controller.usingAnimation) {
       onTraverse = (TreeEntry<T> entry) {
         flatTree.add(entry);
         currentExpansionStates[entry.node] = entry.isExpanded;
@@ -266,9 +265,7 @@ class _SaltedTreeNodeKey<T extends Object> extends GlobalObjectKey {
     if (other.runtimeType != runtimeType) {
       return false;
     }
-    return other is _SaltedTreeNodeKey<T> &&
-        other.node == node &&
-        other.state == state;
+    return other is _SaltedTreeNodeKey<T> && other.node == node && other.state == state;
   }
 
   @override
@@ -306,8 +303,7 @@ class _TreeEntry<T extends Object> extends StatefulWidget {
   State<_TreeEntry<T>> createState() => _TreeEntryState<T>();
 }
 
-class _TreeEntryState<T extends Object> extends State<_TreeEntry<T>>
-    with SingleTickerProviderStateMixin {
+class _TreeEntryState<T extends Object> extends State<_TreeEntry<T>> with SingleTickerProviderStateMixin {
   TreeEntry<T> get entry => widget.entry;
   T get node => entry.node;
 
@@ -442,8 +438,7 @@ class _SubtreeState<T extends Object> extends State<_Subtree<T>> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final TreeEntry<T> virtualEntry in virtualEntries)
-            widget.nodeBuilder(context, virtualEntry),
+          for (final TreeEntry<T> virtualEntry in virtualEntries) widget.nodeBuilder(context, virtualEntry),
         ],
       ),
     );

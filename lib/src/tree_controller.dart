@@ -100,8 +100,10 @@ class TreeController<T extends Object> with ChangeNotifier {
     required Iterable<T> roots,
     required this.childrenProvider,
     ParentProvider<T>? parentProvider,
+    bool usingAnimation = true,
     this.defaultExpansionState = false,
-  }) : _roots = roots {
+  })  : _usingAnimation = usingAnimation,
+        _roots = roots {
     assert(() {
       _debugHasParentProvider = parentProvider != null;
       return true;
@@ -214,6 +216,28 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// and `Set.remove()` which are swapped depending on [defaultExpansionState].
   late final Set<T> toggledNodes = <T>{};
 
+  /// Indicates whether animations should be used when expanding or collapsing nodes.
+  ///
+  /// This variable is meant for **internal use only** and should not be modified directly
+  /// by library users. It is used to temporarily disable animations when performing
+  /// bulk operations, such as expanding or collapsing all nodes at once.
+  ///
+  /// - When `true`, animations are enabled for node expansion and collapse.
+  /// - When `false`, nodes will be updated instantly without animations.
+  ///
+  /// This state is managed internally and automatically toggled before and after
+  /// certain operations to ensure smooth UX while maintaining efficiency.
+  bool _usingAnimation;
+
+  /// Whether animations are currently enabled for node expansion and collapse.
+  ///
+  /// This getter provides read-only access to [_usingAnimation] to indicate
+  /// whether animations are currently being used in the tree structure.
+  ///
+  /// This is intended for **internal state tracking** and is **not meant to be
+  /// directly controlled by users**.
+  bool get usingAnimation => _usingAnimation;
+
   /// The current expansion state of [node].
   ///
   /// If this method returns `true`, the children of [node] should be visible
@@ -227,9 +251,7 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// When overriding this method, do not call `notifyListeners` as this may be
   /// called many times recursively in cascading operations.
   void setExpansionState(T node, bool expanded) {
-    expanded ^ defaultExpansionState
-        ? toggledNodes.add(node)
-        : toggledNodes.remove(node);
+    expanded ^ defaultExpansionState ? toggledNodes.add(node) : toggledNodes.remove(node);
   }
 
   /// Notify listeners that the tree structure changed in some way.
@@ -293,7 +315,12 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// visited node, then calls [rebuild].
   void expandCascading(Iterable<T> nodes) {
     if (nodes.isEmpty) return;
+    _usingAnimation = false;
     _applyCascadingAction(nodes, _expand);
+
+    Future.microtask(() {
+      _usingAnimation = true;
+    });
     rebuild();
   }
 
@@ -301,7 +328,11 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// visited node, then calls [rebuild].
   void collapseCascading(Iterable<T> nodes) {
     if (nodes.isEmpty) return;
+    _usingAnimation = false;
     _applyCascadingAction(nodes, _collapse);
+    Future.microtask(() {
+      _usingAnimation = true;
+    });
     rebuild();
   }
 
@@ -331,8 +362,7 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// [AssertionError] in debug mode if [parentProvider] is not defined.
   void expandAncestors(
     T node, [
-    @Deprecated('Use [TreeController.parentProvider] instead.')
-    ParentProvider<T>? parentProvider,
+    @Deprecated('Use [TreeController.parentProvider] instead.') ParentProvider<T>? parentProvider,
   ]) {
     assert(() {
       if (parentProvider == null) return _debugCheckHasParentProvider();
@@ -541,8 +571,7 @@ class TreeController<T extends Object> with ChangeNotifier {
     ValuePredicate<TreeEntry<T>>? descendCondition,
     TreeEntry<T>? rootEntry,
   }) {
-    final ValuePredicate<TreeEntry<T>> shouldDescend =
-        descendCondition ?? defaultDescendCondition;
+    final ValuePredicate<TreeEntry<T>> shouldDescend = descendCondition ?? defaultDescendCondition;
 
     int treeIndex = 0;
 
