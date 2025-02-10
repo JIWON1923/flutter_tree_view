@@ -328,11 +328,7 @@ class TreeController<T extends Object> with ChangeNotifier {
   /// visited node, then calls [rebuild].
   void collapseCascading(Iterable<T> nodes) {
     if (nodes.isEmpty) return;
-    _usingAnimation = false;
     _applyCascadingAction(nodes, _collapse);
-    Future.microtask(() {
-      _usingAnimation = true;
-    });
     rebuild();
   }
 
